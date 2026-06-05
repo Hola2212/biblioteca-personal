@@ -3,125 +3,399 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Biblioteca Pro 3.2</title>
+<title>Biblioteca Pro 4.0</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 <style>
-body{font-family:system-ui;margin:0;background:#0f172a;color:#fff}
-header{background:#1e293b;padding:12px;position:sticky;top:0}
-.controls,.filters{display:flex;flex-wrap:wrap;gap:6px}
-input,select,button{padding:10px;border:none;border-radius:8px}
-.container{max-width:1200px;margin:auto;padding:12px}
-.card{background:#1e293b;border-radius:12px;padding:12px;margin:10px 0}
-.badge{padding:2px 8px;border-radius:999px}
+body{
+  font-family:system-ui;
+  margin:0;
+  background:#0f172a;
+  color:white;
+}
+header{
+  background:#1e293b;
+  padding:12px;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:12px;
+}
+.controls,.filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+input,select,button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+}
+.card{
+  background:#1e293b;
+  border-radius:12px;
+  padding:14px;
+  margin:10px 0;
+}
+button{
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
+
 <header>
-<h2>📚 Biblioteca Pro 3.2</h2>
+<h2>📚 Biblioteca Pro 4.0</h2>
+
 <div class="controls">
 <input id="q" placeholder="Buscar...">
 <button onclick="showRandom()">🎲 Otros 20</button>
 <button onclick="recommend()">🤔 No sé qué leer</button>
 <button onclick="loadData(true)">🔄 Actualizar</button>
 </div>
+
+<br>
+
 <div class="filters" id="filters"></div>
+
 <div id="stats"></div>
+
 </header>
-<div class="container"><div id="results"></div></div>
+
+<div class="container">
+<div id="results"></div>
+</div>
 
 <script>
-const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQdFRgQevR6pbicFy0195rMlaE6LcXLJayx82dBBRIi-5dL81Y9V6MFHdXk-Vff_w/pub?gid=1729985933&single=true&output=csv";
-let books=[];
 
-function estado(v){
- v=String(v).trim();
- return v==="1"?"✅ Leído":v==="2"?"📖 A la mitad":v==="3"?"👀 Leyendo":"⬜ No leído";
-}
-function disponibilidad(v){
- return String(v).trim()==="1"?"📚 Disponible":"❌ No disponible";
-}
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vQdFRgQevR6pbicFy0195rMlaE6LcXLJayx82dBBRIi-5dL81Y9V6MFHdXk-Vff_w/pub?gid=1729985933&single=true&output=csv";
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbzXciLPfrUb0h_W85NrkUMrqLUj8bYNYrSJ7V8IHme8C-KENnGzG6Smoh7wHaZSPPmEUg/exec";
+
+let books = [];
 
 function normalize(s){
- return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+ return (s || "")
+   .toLowerCase()
+   .normalize("NFD")
+   .replace(/[\u0300-\u036f]/g,"");
+}
+
+function lecturaTexto(v){
+ v=String(v).trim();
+ if(v==="1") return "✅ Leído";
+ if(v==="2") return "📖 A la mitad";
+ if(v==="3") return "👀 Leyendo";
+ return "⬜ No leído";
+}
+
+function disponibilidadTexto(v){
+ return String(v).trim()==="1"
+ ? "📚 Disponible"
+ : "❌ No disponible";
 }
 
 function loadData(force=false){
- const cache=localStorage.getItem("biblioteca32");
+
+ const cache = localStorage.getItem("biblioteca40");
+
  if(cache && !force){
-   books=JSON.parse(cache); buildFilters(); showRandom();
+   books = JSON.parse(cache);
+   buildFilters();
+   showRandom();
  }
+
  Papa.parse(CSV_URL,{
-   download:true,header:true,skipEmptyLines:true,
+   download:true,
+   header:true,
+   skipEmptyLines:true,
+
    complete:(r)=>{
-      books=r.data.map(b=>{
-        if(b["Leído"]!==undefined){ b["Estado de lectura"]=estado(b["Leído"]); delete b["Leído"];}
-        if(b["Disponibilidad"]!==undefined){ b["Disponibilidad"]=disponibilidad(b["Disponibilidad"]);}
-        return b;
-      });
-      localStorage.setItem("biblioteca32",JSON.stringify(books));
-      buildFilters(); showRandom();
+
+     books = r.data.map(b=>({
+       ...b,
+       _disp:String(b["Disponibilidad"] || "").trim(),
+       _lectura:String(b["Leído"] || "").trim()
+     }));
+
+     localStorage.setItem(
+       "biblioteca40",
+       JSON.stringify(books)
+     );
+
+     buildFilters();
+     showRandom();
    }
  });
 }
 
 function buildFilters(){
- const c=document.getElementById("filters");
+
+ const c = document.getElementById("filters");
+
  c.innerHTML="";
- const cols=["Autor (es)","Género","Idioma","Saga","Ubicación","Estado de lectura","Disponibilidad"];
+
+ const cols=[
+   "Autor (es)",
+   "Género",
+   "Idioma",
+   "Saga",
+   "Ubicación"
+ ];
+
  cols.forEach(col=>{
-   const vals=[...new Set(books.map(b=>b[col]).filter(Boolean))];
+
+   const vals=[
+     ...new Set(
+       books.map(b=>b[col]).filter(Boolean)
+     )
+   ];
+
    if(!vals.length) return;
+
    const s=document.createElement("select");
+
    s.dataset.col=col;
-   s.innerHTML='<option value="">'+col+'</option>'+vals.sort().map(v=>'<option>'+v+'</option>').join('');
+
+   s.innerHTML=
+   '<option value="">'+col+'</option>' +
+   vals.sort().map(v=>
+      '<option>'+v+'</option>'
+   ).join('');
+
    s.onchange=()=>apply();
+
    c.appendChild(s);
  });
+
 }
 
 function card(b){
- const title=b["Nombre del libro"]||"Libro";
- const autor=b["Autor (es)"]||"";
- const estado=b["Estado de lectura"]||"";
- const disp=b["Disponibilidad"]||"";
- const idioma=b["Idioma"]||"";
- const ubi=b["Ubicación"]||"";
- return `<div class="card">
- <h3>${title}</h3>
- <div>${autor}</div>
- <div>${estado} · ${disp}</div>
- <div>${idioma} ${ubi?("· "+ubi):""}</div>
+
+ const titulo = b["Nombre del libro"] || "";
+ const autor = b["Autor (es)"] || "";
+ const idioma = b["Idioma"] || "";
+ const ubicacion = b["Ubicación"] || "";
+
+ const id = encodeURIComponent(titulo);
+
+ return `
+ <div class="card">
+
+   <h3>${titulo}</h3>
+
+   <div>${autor}</div>
+
+   <div style="margin-top:12px">
+
+     <label>Disponibilidad</label><br>
+
+     <select id="disp-${id}">
+       <option value="1" ${b._disp==="1"?"selected":""}>
+         📚 Disponible
+       </option>
+
+       <option value="0" ${b._disp!=="1"?"selected":""}>
+         ❌ No disponible
+       </option>
+     </select>
+
+   </div>
+
+   <div style="margin-top:12px">
+
+     <label>Estado de lectura</label><br>
+
+     <select id="lec-${id}">
+
+       <option value="0" ${b._lectura==="0"?"selected":""}>
+         ⬜ No leído
+       </option>
+
+       <option value="1" ${b._lectura==="1"?"selected":""}>
+         ✅ Leído
+       </option>
+
+       <option value="2" ${b._lectura==="2"?"selected":""}>
+         📖 A la mitad
+       </option>
+
+       <option value="3" ${b._lectura==="3"?"selected":""}>
+         👀 Leyendo
+       </option>
+
+     </select>
+
+   </div>
+
+   <div style="margin-top:12px">
+     ${idioma}
+     ${ubicacion ? " · "+ubicacion : ""}
+   </div>
+
+   <button
+      style="margin-top:12px"
+      onclick="guardarCambios('${id}')">
+      💾 Guardar cambios
+   </button>
+
  </div>`;
 }
 
 function render(arr){
- const leidos=books.filter(b=>b["Estado de lectura"]==="✅ Leído").length;
- stats.innerHTML=`Total: ${books.length} | Resultados: ${arr.length} | Leídos: ${leidos}`;
- results.innerHTML=arr.map(card).join("");
+
+ const leidos =
+ books.filter(
+   b => b._lectura==="1"
+ ).length;
+
+ stats.innerHTML =
+ `Total: ${books.length}
+  | Resultados: ${arr.length}
+  | Leídos: ${leidos}`;
+
+ results.innerHTML =
+ arr.map(card).join("");
 }
 
-function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
-function showRandom(){ render(shuffle(apply(true)).slice(0,20)); }
+function shuffle(a){
+ return [...a].sort(()=>Math.random()-0.5);
+}
+
+function showRandom(){
+ render(
+   shuffle(apply(true)).slice(0,20)
+ );
+}
 
 function apply(returnOnly=false){
+
  let r=[...books];
- const qv=normalize(q.value);
+
+ const qv = normalize(q.value);
+
  if(qv){
-   r=r.filter(b=>Object.values(b).some(v=>normalize(String(v)).includes(qv)));
+   r=r.filter(b=>
+     Object.values(b).some(v=>
+       normalize(String(v)).includes(qv)
+     )
+   );
  }
- document.querySelectorAll('#filters select').forEach(s=>{
-   if(s.value) r=r.filter(b=>b[s.dataset.col]===s.value);
+
+ document
+ .querySelectorAll("#filters select")
+ .forEach(s=>{
+   if(s.value){
+     r=r.filter(
+       b=>b[s.dataset.col]===s.value
+     );
+   }
  });
+
  if(returnOnly) return r;
+
  render(r);
 }
 
 function recommend(){
- const r=books.filter(b=>b["Disponibilidad"]==="📚 Disponible" && b["Estado de lectura"]==="⬜ No leído");
- if(r.length) render([r[Math.floor(Math.random()*r.length)]]);
+
+ const r = books.filter(
+   b =>
+   b._disp==="1" &&
+   b._lectura==="0"
+ );
+
+ if(r.length){
+   render([
+     r[Math.floor(Math.random()*r.length)]
+   ]);
+ }
+}
+
+async function guardarCambios(id){
+
+ const titulo = decodeURIComponent(id);
+
+ const disponibilidad =
+ document.getElementById(
+   "disp-"+id
+ ).value;
+
+ const estadoLectura =
+ document.getElementById(
+   "lec-"+id
+ ).value;
+
+ try{
+
+   const res = await fetch(
+     SCRIPT_URL,
+     {
+       method:"POST",
+       headers:{
+         "Content-Type":"application/json"
+       },
+       body:JSON.stringify({
+         accion:"actualizar",
+         titulo,
+         disponibilidad,
+         estadoLectura
+       })
+     }
+   );
+
+   const json = await res.json();
+
+   if(json.ok){
+
+     const libro =
+       books.find(
+         b=>(b["Nombre del libro"]||"")
+         .trim()===titulo.trim()
+       );
+
+     if(libro){
+       libro._disp=disponibilidad;
+       libro._lectura=estadoLectura;
+     }
+
+     localStorage.setItem(
+       "biblioteca40",
+       JSON.stringify(books)
+     );
+
+     alert("Cambios guardados");
+
+   }else{
+
+     alert(
+       json.error ||
+       "No se pudo actualizar"
+     );
+   }
+
+ }catch(err){
+
+   console.error(err);
+
+   alert(
+     "Error conectando con Apps Script"
+   );
+ }
 }
 
 q.oninput=()=>apply();
+
 loadData();
+
 </script>
-</body></html>
+
+</body>
+</html>
