@@ -321,74 +321,50 @@ function recommend(){
 
 async function guardarCambios(id){
 
- const titulo = decodeURIComponent(id);
+  const titulo = decodeURIComponent(id);
 
- const disponibilidad =
- document.getElementById(
-   "disp-"+id
- ).value;
+  const disponibilidad =
+    document.getElementById("disp-"+id).value;
 
- const estadoLectura =
- document.getElementById(
-   "lec-"+id
- ).value;
+  const estadoLectura =
+    document.getElementById("lec-"+id).value;
 
- try{
+  const url =
+    SCRIPT_URL +
+    "?accion=actualizar" +
+    "&titulo=" + encodeURIComponent(titulo) +
+    "&disponibilidad=" + encodeURIComponent(disponibilidad) +
+    "&estadoLectura=" + encodeURIComponent(estadoLectura);
 
-   const res = await fetch(
-     SCRIPT_URL,
-     {
-       method:"POST",
-       headers:{
-         "Content-Type":"application/json"
-       },
-       body:JSON.stringify({
-         accion:"actualizar",
-         titulo,
-         disponibilidad,
-         estadoLectura
-       })
-     }
-   );
+  try{
 
-   const json = await res.json();
+    await fetch(url,{
+      method:"GET",
+      mode:"no-cors"
+    });
 
-   if(json.ok){
+    const libro = books.find(
+      b => (b["Nombre del libro"] || "").trim() === titulo.trim()
+    );
 
-     const libro =
-       books.find(
-         b=>(b["Nombre del libro"]||"")
-         .trim()===titulo.trim()
-       );
+    if(libro){
+      libro._disp = disponibilidad;
+      libro._lectura = estadoLectura;
 
-     if(libro){
-       libro._disp=disponibilidad;
-       libro._lectura=estadoLectura;
-     }
+      localStorage.setItem(
+        "biblioteca40",
+        JSON.stringify(books)
+      );
+    }
 
-     localStorage.setItem(
-       "biblioteca40",
-       JSON.stringify(books)
-     );
+    alert("Solicitud enviada a Google Sheets");
 
-     alert("Cambios guardados");
+  }catch(err){
 
-   }else{
+    console.error(err);
 
-     alert(
-       json.error ||
-       "No se pudo actualizar"
-     );
-   }
-
- }catch(err){
-
-   console.error(err);
-
-   alert(
-     "Error conectando con Apps Script"
-   );
- }
+    alert("No se pudo enviar la solicitud");
+  }
 }
 
 q.oninput=()=>apply();
