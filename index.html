@@ -357,7 +357,11 @@ async function guardarCambios(id){
       );
     }
 
-    alert("Solicitud enviada a Google Sheets");
+    alert("✅ Cambios guardados");
+
+    setTimeout(() => {
+      loadData(true);
+    }, 1000);
 
   }catch(err){
 
