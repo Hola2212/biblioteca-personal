@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Biblioteca Pro 4.0</title>
+<title>Biblioteca Pro 4.1</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -50,13 +50,26 @@ button{
 <body>
 
 <header>
-<h2>📚 Biblioteca Pro 4.0</h2>
+
+<h2>📚 Biblioteca Pro 4.1</h2>
 
 <div class="controls">
-<input id="q" placeholder="Buscar...">
-<button onclick="showRandom()">🎲 Otros 20</button>
-<button onclick="recommend()">🤔 No sé qué leer</button>
-<button onclick="loadData(true)">🔄 Actualizar</button>
+<input
+  id="q"
+  placeholder="Buscar libro, autor o saga..."
+>
+
+<button onclick="showRandom()">
+🎲 Otros 20
+</button>
+
+<button onclick="recommend()">
+🤔 No sé qué leer
+</button>
+
+<button onclick="loadData(true)">
+🔄 Actualizar
+</button>
 </div>
 
 <br>
@@ -88,31 +101,21 @@ function normalize(s){
    .replace(/[\u0300-\u036f]/g,"");
 }
 
-function lecturaTexto(v){
- v=String(v).trim();
- if(v==="1") return "✅ Leído";
- if(v==="2") return "📖 A la mitad";
- if(v==="3") return "👀 Leyendo";
- return "⬜ No leído";
-}
-
-function disponibilidadTexto(v){
- return String(v).trim()==="1"
- ? "📚 Disponible"
- : "❌ No disponible";
-}
-
 function loadData(force=false){
 
- const cache = localStorage.getItem("biblioteca40");
+ const cache = localStorage.getItem("biblioteca41");
 
  if(cache && !force){
+
    books = JSON.parse(cache);
+
    buildFilters();
+
    showRandom();
  }
 
  Papa.parse(CSV_URL,{
+
    download:true,
    header:true,
    skipEmptyLines:true,
@@ -120,17 +123,26 @@ function loadData(force=false){
    complete:(r)=>{
 
      books = r.data.map(b=>({
+
        ...b,
-       _disp:String(b["Disponibilidad"] || "").trim(),
-       _lectura:String(b["Leído"] || "").trim()
+
+       _disp:String(
+         b["Disponibilidad"] || ""
+       ).trim(),
+
+       _lectura:String(
+         b["Leído"] || ""
+       ).trim()
+
      }));
 
      localStorage.setItem(
-       "biblioteca40",
+       "biblioteca41",
        JSON.stringify(books)
      );
 
      buildFilters();
+
      showRandom();
    }
  });
@@ -138,7 +150,8 @@ function loadData(force=false){
 
 function buildFilters(){
 
- const c = document.getElementById("filters");
+ const c =
+ document.getElementById("filters");
 
  c.innerHTML="";
 
@@ -154,81 +167,167 @@ function buildFilters(){
 
    const vals=[
      ...new Set(
-       books.map(b=>b[col]).filter(Boolean)
+       books
+       .map(b=>b[col])
+       .filter(Boolean)
      )
    ];
 
    if(!vals.length) return;
 
-   const s=document.createElement("select");
+   const s =
+   document.createElement("select");
 
-   s.dataset.col=col;
+   s.dataset.col = col;
 
-   s.innerHTML=
-   '<option value="">'+col+'</option>' +
-   vals.sort().map(v=>
-      '<option>'+v+'</option>'
-   ).join('');
+   s.innerHTML =
+   '<option value="">'+
+   col+
+   '</option>' +
+
+   vals.sort()
+   .map(v=>'<option>'+v+'</option>')
+   .join('');
 
    s.onchange=()=>apply();
 
    c.appendChild(s);
+
  });
+
+ const lectura =
+ document.createElement("select");
+
+ lectura.id =
+ "lecturaFilter";
+
+ lectura.innerHTML = `
+ <option value="">
+ Estado de lectura
+ </option>
+
+ <option value="0">
+ ⬜ No leído
+ </option>
+
+ <option value="1">
+ ✅ Leído
+ </option>
+
+ <option value="2">
+ 📖 A la mitad
+ </option>
+
+ <option value="3">
+ 👀 Leyendo
+ </option>
+ `;
+
+ lectura.onchange=()=>apply();
+
+ c.appendChild(lectura);
 
 }
 
 function card(b){
 
- const titulo = b["Nombre del libro"] || "";
- const autor = b["Autor (es)"] || "";
- const idioma = b["Idioma"] || "";
- const ubicacion = b["Ubicación"] || "";
+ const titulo =
+ b["Nombre del libro"] || "";
 
- const id = encodeURIComponent(titulo);
+ const autor =
+ b["Autor (es)"] || "";
+
+ const idioma =
+ b["Idioma"] || "";
+
+ const ubicacion =
+ b["Ubicación"] || "";
+
+ const saga =
+ b["Saga"] || "";
+
+ const id =
+ encodeURIComponent(titulo);
 
  return `
+
  <div class="card">
 
    <h3>${titulo}</h3>
 
    <div>${autor}</div>
 
+   <div style="margin-top:6px">
+   📚 Saga:
+   ${saga || "Independiente"}
+   </div>
+
    <div style="margin-top:12px">
 
-     <label>Disponibilidad</label><br>
+     <label>
+     Disponibilidad
+     </label><br>
 
      <select id="disp-${id}">
-       <option value="1" ${b._disp==="1"?"selected":""}>
+
+       <option
+         value="1"
+         ${b._disp==="1"
+           ?"selected":""
+         }>
          📚 Disponible
        </option>
 
-       <option value="0" ${b._disp!=="1"?"selected":""}>
+       <option
+         value="0"
+         ${b._disp!=="1"
+           ?"selected":""
+         }>
          ❌ No disponible
        </option>
+
      </select>
 
    </div>
 
    <div style="margin-top:12px">
 
-     <label>Estado de lectura</label><br>
+     <label>
+     Estado de lectura
+     </label><br>
 
      <select id="lec-${id}">
 
-       <option value="0" ${b._lectura==="0"?"selected":""}>
-         ⬜ No leído
+       <option
+        value="0"
+        ${b._lectura==="0"
+          ?"selected":""
+        }>
+        ⬜ No leído
        </option>
 
-       <option value="1" ${b._lectura==="1"?"selected":""}>
-         ✅ Leído
+       <option
+        value="1"
+        ${b._lectura==="1"
+          ?"selected":""
+        }>
+        ✅ Leído
        </option>
 
-       <option value="2" ${b._lectura==="2"?"selected":""}>
-         📖 A la mitad
+       <option
+        value="2"
+        ${b._lectura==="2"
+          ?"selected":""
+        }>
+        📖 A la mitad
        </option>
 
-       <option value="3" ${b._lectura==="3"?"selected":""}>
-         👀 Leyendo
+       <option
+        value="3"
+        ${b._lectura==="3"
+          ?"selected":""
+        }>
+        👀 Leyendo
        </option>
 
      </select>
@@ -237,141 +336,280 @@ function card(b){
 
    <div style="margin-top:12px">
      ${idioma}
-     ${ubicacion ? " · "+ubicacion : ""}
+     ${ubicacion
+       ? " · "+ubicacion
+       : ""
+     }
    </div>
 
    <button
-      style="margin-top:12px"
-      onclick="guardarCambios('${id}')">
-      💾 Guardar cambios
+     style="margin-top:12px"
+     onclick="guardarCambios('${id}')">
+
+     💾 Guardar cambios
+
    </button>
 
- </div>`;
+ </div>
+
+ `;
 }
 
 function render(arr){
 
  const leidos =
  books.filter(
-   b => b._lectura==="1"
+   b=>b._lectura==="1"
  ).length;
 
  stats.innerHTML =
- `Total: ${books.length}
-  | Resultados: ${arr.length}
-  | Leídos: ${leidos}`;
+ `
+ Total: ${books.length}
+ |
+ Resultados: ${arr.length}
+ |
+ Leídos: ${leidos}
+ `;
 
  results.innerHTML =
  arr.map(card).join("");
 }
 
 function shuffle(a){
- return [...a].sort(()=>Math.random()-0.5);
+
+ return [...a]
+ .sort(()=>Math.random()-0.5);
+
 }
 
 function showRandom(){
+
  render(
-   shuffle(apply(true)).slice(0,20)
+   shuffle(
+     apply(true)
+   ).slice(0,20)
  );
+
 }
 
 function apply(returnOnly=false){
 
  let r=[...books];
 
- const qv = normalize(q.value);
+ const qv =
+ normalize(q.value);
 
  if(qv){
+
    r=r.filter(b=>
-     Object.values(b).some(v=>
-       normalize(String(v)).includes(qv)
+
+     normalize(
+       b["Nombre del libro"] || ""
+     ).includes(qv)
+
+     ||
+
+     normalize(
+       b["Autor (es)"] || ""
+     ).includes(qv)
+
+     ||
+
+     normalize(
+       b["Saga"] || ""
+     ).includes(qv)
+
+     ||
+
+     Object.values(b)
+     .some(v=>
+
+       normalize(
+         String(v)
+       ).includes(qv)
+
      )
+
    );
  }
 
  document
- .querySelectorAll("#filters select")
+ .querySelectorAll(
+   "#filters select[data-col]"
+ )
  .forEach(s=>{
+
    if(s.value){
+
      r=r.filter(
-       b=>b[s.dataset.col]===s.value
+       b=>
+       b[s.dataset.col]
+       ===
+       s.value
      );
+
    }
+
  });
 
- if(returnOnly) return r;
+ const lecturaFilter =
+ document.getElementById(
+   "lecturaFilter"
+ );
+
+ if(
+   lecturaFilter &&
+   lecturaFilter.value
+ ){
+
+   r=r.filter(
+     b=>
+     b._lectura===
+     lecturaFilter.value
+   );
+
+ }
+
+ if(returnOnly)
+   return r;
 
  render(r);
 }
 
 function recommend(){
 
- const r = books.filter(
-   b =>
-   b._disp==="1" &&
+ const r =
+ books.filter(
+
+   b=>
+
+   b._disp==="1"
+   &&
+
    b._lectura==="0"
+
  );
 
  if(r.length){
+
    render([
-     r[Math.floor(Math.random()*r.length)]
+
+     r[
+       Math.floor(
+         Math.random()
+         *
+         r.length
+       )
+     ]
+
    ]);
  }
+
 }
 
 async function guardarCambios(id){
 
-  const titulo = decodeURIComponent(id);
+ const titulo =
+ decodeURIComponent(id);
 
-  const disponibilidad =
-    document.getElementById("disp-"+id).value;
+ const disponibilidad =
+ document.getElementById(
+   "disp-"+id
+ ).value;
 
-  const estadoLectura =
-    document.getElementById("lec-"+id).value;
+ const estadoLectura =
+ document.getElementById(
+   "lec-"+id
+ ).value;
 
-  const url =
-    SCRIPT_URL +
-    "?accion=actualizar" +
-    "&titulo=" + encodeURIComponent(titulo) +
-    "&disponibilidad=" + encodeURIComponent(disponibilidad) +
-    "&estadoLectura=" + encodeURIComponent(estadoLectura);
+ const url =
 
-  try{
+   SCRIPT_URL +
 
-    await fetch(url,{
-      method:"GET",
-      mode:"no-cors"
-    });
+   "?accion=actualizar" +
 
-    const libro = books.find(
-      b => (b["Nombre del libro"] || "").trim() === titulo.trim()
-    );
+   "&titulo=" +
 
-    if(libro){
-      libro._disp = disponibilidad;
-      libro._lectura = estadoLectura;
+   encodeURIComponent(
+     titulo
+   )
 
-      localStorage.setItem(
-        "biblioteca40",
-        JSON.stringify(books)
-      );
-    }
+   +
 
-    alert("✅ Cambios guardados");
+   "&disponibilidad=" +
 
-    setTimeout(() => {
-      loadData(true);
-    }, 1000);
+   encodeURIComponent(
+     disponibilidad
+   )
 
-  }catch(err){
+   +
 
-    console.error(err);
+   "&estadoLectura=" +
 
-    alert("No se pudo enviar la solicitud");
-  }
+   encodeURIComponent(
+     estadoLectura
+   );
+
+ try{
+
+   await fetch(
+     url,
+     {
+       method:"GET",
+       mode:"no-cors"
+     }
+   );
+
+   const libro =
+   books.find(
+     b=>
+     (
+       b["Nombre del libro"]
+       || ""
+     ).trim()
+     ===
+     titulo.trim()
+   );
+
+   if(libro){
+
+     libro._disp =
+     disponibilidad;
+
+     libro._lectura =
+     estadoLectura;
+
+     localStorage.setItem(
+       "biblioteca41",
+       JSON.stringify(books)
+     );
+
+   }
+
+   alert(
+     "✅ Cambios guardados"
+   );
+
+   setTimeout(()=>{
+
+     loadData(true);
+
+   },1000);
+
+ }catch(err){
+
+   console.error(err);
+
+   alert(
+     "No se pudo enviar la solicitud"
+   );
+
+ }
+
 }
 
-q.oninput=()=>apply();
+q.oninput =
+ ()=>apply();
 
 loadData();
 
